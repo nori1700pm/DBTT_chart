@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Dashboard</title>
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="../static/styles.css">
+    <!-- Include Chart.js library from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- to add filters here based on time -->
+
+    <!-- Dashboard Container -->
+    <div class="dashboard">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Header Section -->
+            <header>
+                <h1>Welcome, User</h1>
+                <p>Here are your latest stats.</p>
+            </header>
+
+            <!-- can show overall stats -->
+            <section class="widgets">
+                <!-- Widget 1 -->
+                <div class="widget">
+                    <h3>Current Temperature</h3>
+                    <p>1,234</p>
+                </div>
+                <!-- Widget 2 -->
+                <div class="widget">
+                    <h3>Current Heat Stress</h3>
+                    <p>567</p>
+                </div>
+                <!-- Widget 3 -->
+                <div class="widget">
+                    <h3>Current UV index</h3>
+                    <p>89</p>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts">
+                <!-- Line Chart Container -->
+                <div class="chart-container">
+                    <canvas id="lineChart"></canvas>
+                </div>
+                <!-- Bar Chart Container -->
+                <div class="chart-container">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Link to external JavaScript file -->
+    <script src="../static/script.js"></script>
+</body>
+
+</html>
