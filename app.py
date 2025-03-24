@@ -31,6 +31,18 @@ def windDirection_mapping(uv):
         dir.append(directions[section])
     return dir
 
+def uv_mapping(uv):
+    if uv <= 2:
+        return "Low", "Feel free to go out and play!"
+    elif 3 <= uv <= 5:
+        return "Moderate", "Use sunscreen (at least SPF 30) and sunglasses."
+    elif 6 <= uv <= 7:
+        return "High", "Stay in shade during midday."
+    elif 8 <= uv <= 10:
+        return "Very High", "Reduce time in the sun!"
+    else:
+        return "Extreme" , "Avoid being outside!"
+
 def get_weather_data(api, datetime):
 
     # air temp, wind speed, wind direction, relative humidity
@@ -75,6 +87,46 @@ def home():
 def weather_api():
     data = get_weather_data(weather_stats_API, current_datetime)
     return data
+
+# @app.route("/api/heat_stress")
+# def weather_api():
+#     data = get_weather_data(weather_stats_API, current_datetime)
+#     return data
+
+@app.route("/api/2hr_forecast")
+def forecase_api():
+    request = weather_stats_API["2_hr_weather"] + "?date=" + current_datetime
+    response = requests.get(request).json()
+
+    locations = response["data"]["area_metadata"]
+    loc_df = pd.json_normalize(locations).rename(columns={'label_location.latitude': 'lat', 'label_location.longitude': 'lon'})
+    
+    forecast_data = response["data"]["items"][0]["forecasts"]
+    forecast_df = pd.json_normalize(forecast_data).rename(columns={'area': 'name', 'forecast': 'forecast'})
+
+    combined_df = pd.merge(loc_df, forecast_df, on='name', how='inner')
+    combined_df = combined_df[combined_df['name'] == location]    
+
+    # Optional filter by query parameter
+    # location_param = request.args.get('location')  # e.g., /api/2hr_forecast?location=Bedok
+    # if location_param:
+    #     combined_df = combined_df[combined_df['name'] == location_param]
+
+    return combined_df.to_json()
+
+@app.route("/api/uv_index")
+def uv_index_api():
+    request = weather_stats_API["uv_index"] + "?date=" + current_datetime
+    response = requests.get(request).json()
+
+    print(request)
+
+    uvIndex_df = pd.json_normalize(response["data"]["records"][0]["index"])
+
+    # Apply the mapping to create a new advice column
+    uvIndex_df[['level', 'advice']] = uvIndex_df['value'].apply(lambda x: pd.Series(uv_mapping(x)))
+    
+    return uvIndex_df.to_json()
 
 
 if __name__ == '__main__':
