@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 import pandas as pd
 import pickle
 import requests
+import time
 from sklearn.preprocessing import MinMaxScaler
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 from geopy.distance import geodesic
 import numpy as np
 from scipy.stats import percentileofscore
@@ -11,8 +12,30 @@ from analytics.api import get_weather_data
 
 
 class WeatherAnalyzer:
-    """
-    A class to analyze weather data and determine heat-related insights.
+    """WeatherAnalyzer is a class designed to analyze weather data and provide heat-related insights.
+    It processes historical and current weather data, computes heat scores, and determines if a
+    location is a heat hotspot based on weighted heat scores and thresholds.
+    Attributes:
+        CONFIG (dict): Configuration values loaded from the environment file.
+        scaler (MinMaxScaler): Scaler for normalizing air temperature, humidity, and wind speed.
+        scaler_heat (MinMaxScaler): Scaler for normalizing heat scores.
+        DATA (pd.DataFrame): Processed historical weather data.
+        CURRENT (pd.DataFrame): Cached current weather data.
+        date (datetime): Timestamp of the last fetched current weather data.
+    Methods:
+        __init__(): Initializes the WeatherAnalyzer instance, loads configurations, processes historical data, and fetches current weather.
+        _load_and_process_historical_data(): Loads and processes historical weather data from a CSV file.
+        _process_weather_data(df, historical): Normalizes weather data and computes heat scores.
+        get_current_weather(mock): Fetches the current weather data, with an option to mock data for testing.
+        _date_to_str(date_obj): Converts a datetime object to a formatted string.
+        postal_code_to_latlong(postal_code): Converts a postal code to latitude and longitude using the OneMap API.
+        find_nearest_stations(latitude, longitude, num_stations): Finds the nearest weather stations to a given location.
+        __compute_distance(df, latitude, longitude): Computes the geodesic distance between a location and weather stations.
+        __compute_weights(df): Computes weights for weather stations based on their distance.
+        __compute_weighted_heat_score(df): Computes the weighted heat score for a set of weather stations.
+        find_threshold(historical_data, percentile_threshold): Determines the heat score threshold based on historical data and a percentile.
+        is_hotspot(nearest_stations, latitude, longitude, percentile_threshold): Determines if a location is a heat hotspot based on weighted heat scores.
+        filter_data(nearest_stations): Filters historical data to include only records from the nearest weather stations.
     """
 
     def __init__(self):
@@ -21,7 +44,7 @@ class WeatherAnalyzer:
         Loads configuration, processes historical weather data, and initializes scalers.
         """
         print("WeatherAnalyzer initialized")
-        self.CONFIG = load_dotenv(".env")
+        self.CONFIG = dotenv_values(".env")
         self.scaler = MinMaxScaler()
         self.scaler_heat = MinMaxScaler()
         self.DATA = self._load_and_process_historical_data()
@@ -51,18 +74,22 @@ class WeatherAnalyzer:
         """
         if historical:
             # self.scaler.fit(df[["airTemp", "humidity", "windSpeed"]])
-            df[["airTemp_norm", "humidity_norm", "windSpeed_norm"]] = self.scaler.fit_transform(
-                df[["airTemp", "humidity", "windSpeed"]]
+            df[["airTemp_norm", "humidity_norm", "windSpeed_norm"]] = (
+                self.scaler.fit_transform(df[["airTemp", "humidity", "windSpeed"]])
             )
-            df["heat_score"] = df["airTemp_norm"] + df["humidity_norm"] - df["windSpeed_norm"]
+            df["heat_score"] = (
+                df["airTemp_norm"] + df["humidity_norm"] - df["windSpeed_norm"]
+            )
             # self.scaler_heat.fit(df[["heat_score"]])
             df["heat_score_norm"] = self.scaler_heat.fit_transform(df[["heat_score"]])
-            
-        else: 
-            df[["airTemp_norm", "humidity_norm", "windSpeed_norm"]] = self.scaler.transform(
-                df[["airTemp", "humidity", "windSpeed"]]
+
+        else:
+            df[["airTemp_norm", "humidity_norm", "windSpeed_norm"]] = (
+                self.scaler.transform(df[["airTemp", "humidity", "windSpeed"]])
             )
-            df["heat_score"] = df["airTemp_norm"] + df["humidity_norm"] - df["windSpeed_norm"]
+            df["heat_score"] = (
+                df["airTemp_norm"] + df["humidity_norm"] - df["windSpeed_norm"]
+            )
             df["heat_score_norm"] = self.scaler_heat.transform(df[["heat_score"]])
 
         return df
@@ -79,7 +106,9 @@ class WeatherAnalyzer:
         if self.CURRENT is None or self.date - datetime_now > timedelta(minutes=5):
             datetime_str = self._date_to_str(datetime_now)
             weather_data = get_weather_data(datetime_str)
-            weather_data.rename(columns={"lat": "latitude", "lon": "longitude"}, inplace=True)
+            weather_data.rename(
+                columns={"lat": "latitude", "lon": "longitude"}, inplace=True
+            )
             if mock:
                 weather_data.loc[weather_data["stationId"] == "S50", "airTemp"] = 33
             self.CURRENT = self._process_weather_data(weather_data, historical=False)
@@ -96,7 +125,9 @@ class WeatherAnalyzer:
         """
         return date_obj.strftime("%Y-%m-%dT%H:%M:%S")
 
-    def postal_code_to_latlong(self, postal_code: str) -> tuple[float, float] | None:
+    def postal_code_to_latlong(
+        self, postal_code: str | int
+    ) -> tuple[float, float] | None:
         """
         Converts a postal code to latitude and longitude using the OneMap API.
         Parameters:
@@ -119,20 +150,31 @@ class WeatherAnalyzer:
                 print(f"Error processing postal code {postal_code}: {e}")
         return None
 
-    def find_nearest_stations(self, df: pd.DataFrame, num_stations: int = 1) -> pd.DataFrame:
+    def find_nearest_stations(
+        self, latitude, longitude, num_stations: int = 1
+    ) -> pd.DataFrame:
         """
-        Finds the nearest weather stations to the user's location.
+        Finds the nearest weather stations to the specified location.
+        This method calculates the distance between the given latitude and longitude
+        and the weather stations in the dataset, then identifies the nearest stations
+        based on the specified number.
         Parameters:
-            df (pd.DataFrame): DataFrame containing weather data with columns 'latitude' and 'longitude'.
-            num_stations (int): Number of nearest stations to find. Default is 1.
+            latitude (float): Latitude of the target location.
+            longitude (float): Longitude of the target location.
+            num_stations (int, optional): Number of nearest stations to find. Default is 1.
+            pd.DataFrame: A DataFrame containing the nearest weather stations, sorted by
+            distance, with computed weights for each station.
         Returns:
             pd.DataFrame: DataFrame containing the nearest weather stations sorted by distance.
         """
-        df = self.__compute_distance(df)
-        nearest_stations = df.nsmallest(num_stations, "distance")
+        nearest = self.get_current_weather().copy(deep=True)
+        nearest = self.__compute_distance(nearest, latitude, longitude)
+        nearest_stations = nearest.nsmallest(num_stations, "distance")
         return self.__compute_weights(nearest_stations)
 
-    def __compute_distance(self, df: pd.DataFrame) -> pd.DataFrame:
+    def __compute_distance(
+        self, df: pd.DataFrame, latitude: float, longitude: float
+    ) -> pd.DataFrame:
         """
         Computes the geodesic distance between the user's location and each station.
         Parameters:
@@ -141,7 +183,9 @@ class WeatherAnalyzer:
             pd.DataFrame: DataFrame with an additional 'distance' column.
         """
         df["distance"] = df.apply(
-            lambda row: geodesic((self.LAT, self.LON), (row["latitude"], row["longitude"])).km,
+            lambda row: geodesic(
+                (latitude, longitude), (row["latitude"], row["longitude"])
+            ).km,
             axis=1,
         )
         return df
@@ -158,7 +202,7 @@ class WeatherAnalyzer:
         df["distance_weight"] /= df["distance_weight"].sum()
         return df
 
-    def compute_weighted_heat_score(self, df: pd.DataFrame) -> float:
+    def __compute_weighted_heat_score(self, df: pd.DataFrame) -> float:
         """
         Computes the weighted heat score based on the nearest weather stations.
         Parameters:
@@ -168,7 +212,9 @@ class WeatherAnalyzer:
         """
         return np.dot(df["distance_weight"], df["heat_score_norm"])
 
-    def find_threshold(self, historical_data: pd.DataFrame, percentile_threshold: int) -> float:
+    def find_threshold(
+        self, historical_data: pd.DataFrame, percentile_threshold: int
+    ) -> float:
         """
         Finds the threshold value for heat scores based on historical data.
         Parameters:
@@ -177,9 +223,17 @@ class WeatherAnalyzer:
         Returns:
             float: The threshold value for heat scores.
         """
-        return np.percentile(historical_data["weighted_heat_score"], percentile_threshold)
+        return np.percentile(
+            historical_data["weighted_heat_score"], percentile_threshold
+        )
 
-    def is_hotspot(self, df: pd.DataFrame, percentile_threshold: int = 90) -> tuple:
+    def is_hotspot(
+        self,
+        nearest_stations: pd.DataFrame,
+        latitude: float,
+        longitude: float,
+        percentile_threshold: int = 90,
+    ) -> dict:
         """
         Determines if a location is a heat hotspot based on weighted heat score.
         Parameters:
@@ -193,15 +247,14 @@ class WeatherAnalyzer:
                 - heat_threshold (float): The heat score threshold.
                 - percentile (float): The percentile of the weighted heat score.
         """
-        nearest_stations = self.find_nearest_stations(df, num_stations=3)
-        weighted_score = self.compute_weighted_heat_score(nearest_stations)
+        weighted_score = self.__compute_weighted_heat_score(nearest_stations)
 
         historical_data = self.filter_data(nearest_stations)
-        historical_data = self.__compute_distance(historical_data)
+        historical_data = self.__compute_distance(historical_data, latitude, longitude)
 
         def weighted_heat_score(group):
             group = self.__compute_weights(group)
-            return self.compute_weighted_heat_score(group)
+            return self.__compute_weighted_heat_score(group)
 
         historical_data = (
             historical_data.groupby(["date"])
@@ -210,14 +263,16 @@ class WeatherAnalyzer:
         )
 
         heat_threshold = self.find_threshold(historical_data, percentile_threshold)
-        percentile = percentileofscore(historical_data["weighted_heat_score"], weighted_score)
-
-        return (
-            weighted_score > heat_threshold,
-            weighted_score,
-            heat_threshold,
-            percentile,
+        percentile = percentileofscore(
+            historical_data["weighted_heat_score"], weighted_score
         )
+
+        return {
+            "isHotspot": bool(weighted_score > heat_threshold),
+            "weighted_score": weighted_score,
+            "heat_threshold": heat_threshold,
+            "percentile": percentile,
+        }
 
     def filter_data(self, nearest_stations: pd.DataFrame) -> pd.DataFrame:
         """
@@ -229,15 +284,3 @@ class WeatherAnalyzer:
             pd.DataFrame: Filtered DataFrame containing historical data for the nearest stations.
         """
         return self.DATA[self.DATA["stationId"].isin(nearest_stations["stationId"])]
-
-    def set_location(self, postal_code: str):
-        """
-        Sets the user's location based on a postal code.
-        Parameters:
-            postal_code (str): The postal code of the user's location.
-        """
-        lat_lon = self.postal_code_to_latlong(postal_code)
-        if lat_lon:
-            self.LAT, self.LON = lat_lon
-        else:
-            raise ValueError(f"Could not find coordinates for postal code: {postal_code}")
