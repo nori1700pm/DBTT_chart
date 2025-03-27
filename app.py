@@ -1,7 +1,10 @@
 from flask import Flask, render_template, jsonify
 import pandas as pd
 import requests
+from analytics.data import Data
+from analytics.data_refactored import WeatherAnalyzer
 
+DATA = WeatherAnalyzer()
 app = Flask(__name__)
 
 weather_stats_API = {"air_temp": "https://api-open.data.gov.sg/v2/real-time/api/air-temperature",
@@ -128,6 +131,17 @@ def uv_index_api():
     
     return uvIndex_df.to_json()
 
+@app.route("/weather/history")
+def weather_history():
+    
+    data = DATA.get_data()
+    data = data.sample(100)
+    return data.to_json(orient='records')
+
+@app.route("/test")
+def test():
+    print(DATA.date)
+    return DATA.get_current_weather().to_json(orient='records')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
