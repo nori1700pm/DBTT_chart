@@ -2,9 +2,7 @@ from flask import Flask, render_template, jsonify, request, abort, Response
 import pandas as pd
 import requests
 import json
-
-# from analytics.data import Data
-from analytics.data_refactored import WeatherAnalyzer
+from analytics.weather_service import WeatherAnalyzer
 
 weather_service = WeatherAnalyzer()
 app = Flask(__name__)
