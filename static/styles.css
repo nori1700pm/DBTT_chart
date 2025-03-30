@@ -9,7 +9,7 @@
   :root {
     --primary-color: #4A90E2;       /* Blue shade */
     --secondary-color: #50E3C2;     /* Teal shade */
-    --background-color: #F5F7FA;    /* Light gray */
+    --background-color: #FFFFFB;    /* Light gray */
     --text-color: #4A4A4A;          /* Dark gray */
     --white-color: #FFFFFF;         /* Pure white */
   }
@@ -21,16 +21,25 @@
     color: var(--text-color);
   }
   
-  /* Dashboard layout styling */
-  .dashboard {
-    display: flex;
-    min-height: 100vh;
-  }
+  /* Fixed-size mobile-friendly container */
+.app-wrapper {
+  width: 390px;
+  margin: 0 auto;
+  overflow-y: auto;
+  border-radius: 12px;
+  background-color: var(--background-color);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.stat {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
 
   /* Main content area styling */
 .main-content {
     flex: 1;
-    padding: 40px;
+    padding: 16px;
   }
   
   /* Header section styling */
@@ -77,6 +86,14 @@
     transform: translateY(-5px);
   }
 
+  button {
+    background: none;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 4px;
+  }
+
   /* Charts section layout */
 .charts {
     display: flex;
@@ -92,6 +109,12 @@
     flex: 1;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   }
+
+  .widgets, .charts {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
   
   /* Responsive design for smaller screens */
   @media (max-width: 768px) {
