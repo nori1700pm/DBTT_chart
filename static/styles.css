@@ -86,6 +86,19 @@
     transform: translateY(-5px);
   }
 
+  .stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .label {
+    font-weight: bold;
+    color: #333;
+  }
+  
+
   button {
     background: none;
     border: none;
@@ -94,23 +107,8 @@
     padding: 4px;
   }
 
-  /* Charts section layout */
-.charts {
-    display: flex;
-    margin-top: 40px;
-    gap: 20px;
-  }
-  
-  /* Chart container styling */
-  .chart-container {
-    background-color: var(--white-color);
-    padding: 20px;
-    border-radius: 8px;
-    flex: 1;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  }
 
-  .widgets, .charts {
+  .widgets {
     flex-direction: column;
     gap: 12px;
   }

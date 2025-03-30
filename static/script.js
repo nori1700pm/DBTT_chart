@@ -44,15 +44,15 @@ document.addEventListener("DOMContentLoaded", () => {
     
       // Update DOM
       document.getElementById("avg-temp").innerHTML = `
-        <strong>Temperature:</strong> <span style="color:#c28700">${airTempAvg}°C</span>
+        <strong>Temperature</strong> <span style="color:#c28700" class="label">${airTempAvg}°C</span>
       `;
     
       document.getElementById("avg-heat").innerHTML = `
-        <strong>Heat Stress:</strong> <span style="color:#f57c00">${heatStressAvg}</span>
+        <strong>Heat Stress</strong> <span style="color:#f57c00" class="label">${heatStressAvg}</span>
       `;
     
       document.getElementById("avg-wind").innerHTML = `
-        <strong>Wind Direction:</strong> <span>${windDirection}</span>
+        <strong>Wind Direction</strong> <span class="label">${windDirection}</span>
       `;
 
       const current = {
@@ -153,7 +153,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 display: true, 
                 text: "WBGT Index",
                 font: {
-                  size: 10
+                  size: 10,
+                  family: "Inter", // <- custom font
                 }}
             },
             x: {
@@ -161,7 +162,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 display: true, 
                 text: "Time", 
                 font:{
-                size:10
+                size:10,
+                family: "Inter", // <- custom font
                 }},
               ticks: {
                 maxTicksLimit: 4, // limits the number of labels shown
