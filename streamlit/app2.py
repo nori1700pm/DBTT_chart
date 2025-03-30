@@ -1,4 +1,5 @@
 import streamlit as st
+import requests
 
 # Custom CSS for styling
 def apply_custom_css():
@@ -35,6 +36,7 @@ def apply_custom_css():
 
 # Function to simulate API call for weather data
 def fetch_weather_recommendation(postal_code, house_direction):
+    
     # Simulate API response (replace with actual API call)
     weather_data = {
         "temperature": 32,  # in Celsius
