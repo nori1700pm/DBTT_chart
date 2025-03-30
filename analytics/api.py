@@ -12,6 +12,16 @@ API = {
 }
 
 
+INDOOR_MAPPING = {
+    "Living Room": "S109", #Ang Mo Kio Avenue 5
+    "Bedroom": "S44", #Nanyang Avenue 
+    "Kitchen": "S106", # Pulau Ubin 
+    "Shelter": "S117", # Banyan Road
+    "Storage": "S43", # Kim Chuan Road 
+    "Toilet": "S107" # East Cost Parkway
+}
+
+
 def get_weather_data(datetime, api=API) -> pd.DataFrame:
 
     # air temp, wind speed, wind direction, relative humidity

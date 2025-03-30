@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import pandas as pd
+import os
 import pickle
 import requests
 import time
@@ -9,6 +10,7 @@ from geopy.distance import geodesic
 import numpy as np
 from scipy.stats import percentileofscore
 from analytics.api import get_weather_data
+from analytics.api import INDOOR_MAPPING 
 
 
 class WeatherAnalyzer:
@@ -58,7 +60,9 @@ class WeatherAnalyzer:
         Returns:
             pd.DataFrame: Processed historical weather data.
         """
-        DATA = pd.read_csv("data/weather_data_5years.csv")
+        base_path = os.path.dirname(__file__)  # gets the directory of weather_service.py
+        file_path = os.path.join(base_path, 'data', 'weather_data_5years.csv')
+        DATA = pd.read_csv(file_path)
         DATA[["date", "time"]] = DATA["date"].str.split("T", expand=True)
         DATA.rename(columns={"lon": "longitude", "lat": "latitude"}, inplace=True)
         return self._process_weather_data(DATA, historical=True)
@@ -125,6 +129,59 @@ class WeatherAnalyzer:
         """
         return date_obj.strftime("%Y-%m-%dT%H:%M:%S")
 
+    
+    def get_forecast_df(self, location: str = None) -> pd.DataFrame:
+        url = self.CONFIG["2_hr_weather"] + "?date=" + self.CONFIG["CURRENT_DATETIME"]
+        response = requests.get(url).json()
+
+        area_metadata = pd.json_normalize(response["data"]["area_metadata"])
+        forecasts = pd.json_normalize(response["data"]["items"][0]["forecasts"])
+
+        area_metadata = area_metadata.rename(columns={
+            "name": "name",
+            "label_location.latitude": "lat",
+            "label_location.longitude": "lon"
+        })
+        forecasts = forecasts.rename(columns={"area": "name", "forecast": "forecast"})
+
+        df = pd.merge(area_metadata, forecasts, on="name", how="inner")
+        
+        if location:
+            df = df[df["name"] == location]
+        
+        return df
+    
+    def get_indoor_summary(self) -> pd.DataFrame:
+        # Reverse map: stationId → room
+        station_to_room = {v: k for k, v in INDOOR_MAPPING.items()}
+
+        # Copy and map
+        df = self.CURRENT.copy()
+        df["room"] = df["stationId"].map(station_to_room)
+
+        # Keep only rows where room is mapped (not NaN)
+        df = df[df["room"].notna()]
+
+        # Get Living Room's wind direction 
+        living_room_dir = df[df["room"] == "Living Room"]["windDirection_dir"].values
+        wind_dir = living_room_dir[0] if len(living_room_dir) > 0 else None
+
+        # Replace all wind directions with Living Room's wind dir
+        df["windDirection_dir"] = wind_dir
+
+        # Uses panda vectorizer to loop through each row
+        df["heatStress"] = (
+            0.726330 * df["airTemp"] +
+            0.012713 * df["windSpeed"] +
+            0.109697 * df["humidity"] -
+            5.12977
+        ).round(3)
+
+        # Select only required columns
+        final_df = df[["room", "airTemp", "humidity", "windSpeed", "windDirection_dir", "heatStress"]].reset_index(drop=True)
+
+        return final_df
+    
     def postal_code_to_latlong(
         self, postal_code: str | int
     ) -> tuple[float, float] | None:

@@ -9,49 +9,60 @@
     <link rel="stylesheet" href="../static/styles.css">
     <!-- Include Chart.js library from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+
 </head>
 
 <body>
-    <!-- to add filters here based on time -->
+    <div class="app-wrapper">
+        <!-- to add filters here based on time -->
 
-    <!-- Dashboard Container -->
-    <div class="dashboard">
+        <!-- Dashboard Container -->
+    
         <!-- Main Content Area -->
         <div class="main-content">
             <!-- Header Section -->
-            <header>
-                <h1>G'Day!</h1>
-                <p>How's the weather looking like?</p>
+            <header style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Dashboard</h2>
+                <p id="current-datetime">  </p>
             </header>
 
-            <!-- can show overall stats -->
             <section class="widgets">
-                <!-- Widget 1 -->
+                
+                <!-- Average Statistics -->
                 <div class="widget">
-                    <h3>Forecast</h3>
-                    <p id="forecast"></p>
+                    <h3>Average Statistics</h3>
+                        <div id="avg-temp" class="stat"></div>
+                        <div id="avg-heat" class="stat"></div>
+                        <div id="avg-wind" class="stat"></div>
                 </div>
-                <!-- Widget 2 -->
+
+                <!-- Overall Statistics -->
                 <div class="widget">
-                    <h3>Current Heat Stress</h3>
-                    <p id="heat_stress">Low - 23.1</p>
+                    <h3>Overall Statistics </h3>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <button id="prevMetric">
+                            <i data-feather="arrow-left"></i>
+                        </button>
+                    
+                        <div style="flex: 1; margin: 0 10px;">
+                          <table id="room-metric-table" style="width:100%; font-size: 14px;"></table>
+                        </div>
+                    
+                        <button id="nextMetric">
+                            <i data-feather="arrow-right"></i>
+                        </button>
+                      </div>
+                    
+                      <div style="text-align: center; margin-top: 8px;" id="metric-label"></div>
                 </div>
-                <!-- Widget 3 -->
-                <div class="widget">
-                    <h3>Current UV index</h3>
-                    <p id="uv_index">1</p>
-                </div>
+
             </section>
 
-            <!-- Charts Section -->
             <section class="charts">
-                <!-- Line Chart Container -->
+                <!-- Predictive Heat Stress Time Series Graph -->
                 <div class="chart-container">
-                    <canvas id="lineChart"></canvas>
-                </div>
-                <!-- Bar Chart Container -->
-                <div class="chart-container">
-                    <canvas id="barChart"></canvas>
+                    <canvas id="heatStressChart"></canvas>
                 </div>
             </section>
 
@@ -83,9 +94,9 @@
                 </div>
                 </div>
             </section>
-        </div>
+            </div>
+        
     </div>
-
     <!-- Link to external JavaScript file -->
     <script src="../static/script.js"></script>
 </body>
