@@ -20,10 +20,15 @@ class AI:
             If the weather is hot, suggest ways to feel cooler at home (e.g., ventilation strategies, optimal curtain use, using fans effectively).
             If the weather is cool, suggest ways to save energy (e.g., reducing unnecessary AC usage, optimizing natural light).
             If the wind direction is favorable for ventilation, suggest ways to maximize airflow.
+        4. Formulate a response composing of 2 parts:
+            1. A summary of the current weather conditions.
+            2. A suggestion for improving comfort or saving energy based on the weather conditions. Ensure the suggestion is relevant to the specific weather conditions and keep it to 3 sentences. Be specific in mentioning specific rooms or areas of the house.
+        Do not include any other information or the logic used to determine hotspots. The response should be concise and actionable.
 
     Output format example:
-    "Your house is facing [direction], the air temperature is around [range]°C, the current wind direction is [], and the humidity is []%. Based on these conditions, you can try [suggestion] to improve comfort or save energy."
-    Ensure the suggestion is relevant to the specific weather conditions."""
+    Summary: The air temperature is around []°C and the humidity is around []. Your house is facing [] and the current wind direction and speed is []. Overall, the weather is [], and is hotter than []% of historical data.
+    Suggestions: Even though it's not a hotspot, consider opening windows on the south and east sides of your house to take advantage of the breezes. Drawing bedroom curtains during the day may help you feel cool while conserving energy.
+    """
 
     def __init__(self, config: dict):
         self.CLIENT = genai.Client(api_key=config["GEMINI_KEY"])

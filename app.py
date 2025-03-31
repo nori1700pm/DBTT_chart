@@ -17,7 +17,7 @@ app.config['JSON_SORT_KEYS'] = False
 
 @app.errorhandler(400)
 def bad_request(e):
-    return jsonify(error=str(e)), 404
+    return jsonify(error=str(e)), 400
 
 
 @app.route("/")

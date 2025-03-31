@@ -13,12 +13,12 @@ API = {
 
 
 INDOOR_MAPPING = {
-    "Living Room": "S109", #Ang Mo Kio Avenue 5
-    "Bedroom": "S44", #Nanyang Avenue 
-    "Kitchen": "S106", # Pulau Ubin 
-    "Shelter": "S117", # Banyan Road
-    "Storage": "S43", # Kim Chuan Road 
-    "Toilet": "S107" # East Cost Parkway
+    "Living Room": "S109",  # Ang Mo Kio Avenue 5
+    "Bedroom": "S44",  # Nanyang Avenue
+    "Kitchen": "S106",  # Pulau Ubin
+    "Shelter": "S117",  # Banyan Road
+    "Storage": "S43",  # Kim Chuan Road
+    "Toilet": "S107",  # East Cost Parkway
 }
 
 
@@ -65,6 +65,14 @@ def get_weather_data(datetime, api=API) -> pd.DataFrame:
         columns={"value": "humidity"}
     )
 
+    # uv index
+    # check if time is in between 7am to 9pm
+    uv_index = 0
+    if datetime[11:13] >= "07" and datetime[11:13] <= "21":
+        request5 = api["uv_index"] + "?date=" + datetime
+        response5 = requests.get(request5).json()
+        uv_index = response5["data"]["records"][0]["index"][0]["value"]
+
     df = (
         loc_df.set_index("stationId")
         .join(
@@ -79,6 +87,7 @@ def get_weather_data(datetime, api=API) -> pd.DataFrame:
         .reset_index()
     )
     df["windDirection_dir"] = windDirection_mapping(df["windDirection_deg"])
+    df["uv_index"] = uv_index
 
     return df
 
