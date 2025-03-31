@@ -1,14 +1,13 @@
-from datetime import datetime, timedelta
-import pandas as pd
 import os
-import pickle
+import numpy as np
+import pandas as pd
 import requests
-import time
-from sklearn.preprocessing import MinMaxScaler
+from datetime import datetime, timedelta
 from dotenv import dotenv_values
 from geopy.distance import geodesic
-import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 from scipy.stats import percentileofscore
+
 from analytics.api import get_weather_data
 from analytics.api import INDOOR_MAPPING 
 
@@ -37,10 +36,10 @@ class WeatherAnalyzer:
         __compute_weighted_heat_score(df): Computes the weighted heat score for a set of weather stations.
         find_threshold(historical_data, percentile_threshold): Determines the heat score threshold based on historical data and a percentile.
         is_hotspot(nearest_stations, latitude, longitude, percentile_threshold): Determines if a location is a heat hotspot based on weighted heat scores.
-        filter_data(nearest_stations): Filters historical data to include only records from the nearest weather stations.
+        __filter_data(nearest_stations): Filters historical data to include only records from the nearest weather stations.
     """
 
-    def __init__(self):
+    def __init__(self, config: dict = None):
         """
         Initializes the WeatherAnalyzer instance.
         Loads configuration, processes historical weather data, and initializes scalers.
@@ -53,6 +52,7 @@ class WeatherAnalyzer:
         self.CURRENT = None
         self.date = datetime.now()
         self.CURRENT = self.get_current_weather()
+        self.CONFIG = config
 
     def _load_and_process_historical_data(self) -> pd.DataFrame:
         """
@@ -306,7 +306,7 @@ class WeatherAnalyzer:
         """
         weighted_score = self.__compute_weighted_heat_score(nearest_stations)
 
-        historical_data = self.filter_data(nearest_stations)
+        historical_data = self.__filter_data(nearest_stations)
         historical_data = self.__compute_distance(historical_data, latitude, longitude)
 
         def weighted_heat_score(group):
@@ -331,7 +331,7 @@ class WeatherAnalyzer:
             "percentile": percentile,
         }
 
-    def filter_data(self, nearest_stations: pd.DataFrame) -> pd.DataFrame:
+    def __filter_data(self, nearest_stations: pd.DataFrame) -> pd.DataFrame:
         """
         Filters historical data based on the nearest weather stations.
         Parameters:
@@ -341,3 +341,29 @@ class WeatherAnalyzer:
             pd.DataFrame: Filtered DataFrame containing historical data for the nearest stations.
         """
         return self.DATA[self.DATA["stationId"].isin(nearest_stations["stationId"])]
+
+    def angle_to_dir(self, angle: int):
+        """Converts an angle in degrees to a compass direction.
+        Parameters:
+            angle (int): The angle in degrees."""
+        directions = [
+            "N",
+            "NNE",
+            "NE",
+            "ENE",
+            "E",
+            "ESE",
+            "SE",
+            "SSE",
+            "S",
+            "SSW",
+            "SW",
+            "WSW",
+            "W",
+            "WNW",
+            "NW",
+            "NNW",
+        ]
+        angle = angle % 360
+        section = int(angle / 22.5)
+        return directions[section]
