@@ -4,7 +4,7 @@ import markdown
 import requests
 import pandas as pd
 import random
-import math
+
 
 # Function to fetch weather data
 @st.cache_data(ttl=300)
@@ -16,6 +16,7 @@ def fetch_weather_data():
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching data: {e}")
         return []
+
 
 # Function to calculate average statistics
 def calculate_average_stats(data):
@@ -29,10 +30,10 @@ def calculate_average_stats(data):
         "Heat Stress": avg([d["heatStress"] for d in data]),
         "Humidity (%)": avg([d["humidity"] for d in data]),
         "Wind Speed (m/s)": avg([d["windSpeed"] for d in data]),
-        "Wind Direction": data[0]["windDirection_dir"] if data else None
+        "Wind Direction": data[0]["windDirection_dir"] if data else None,
     }
 
-# Function to generate time series data for heat stress prediction
+
 def generate_time_series(current):
     now = datetime.datetime.now()
     time_labels = []
@@ -51,9 +52,11 @@ def generate_time_series(current):
 
     return pd.DataFrame({"Time": time_labels, "Heat Stress": stress_values})
 
+
 # Custom CSS for styling
 def apply_custom_css():
-    st.markdown("""
+    st.markdown(
+        """
         <style>
             .stApp {
                 background-color: #f4f4f9;
@@ -89,11 +92,17 @@ def apply_custom_css():
                 color: #333;
             }
         </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
+
 
 # Function to simulate API call for weather data
 def fetch_weather_recommendation(postal_code, house_direction):
-    res = requests.get("http://127.0.0.1:5000/api/ai/suggestions", params={"postal_code": postal_code, "direction": house_direction})
+    res = requests.get(
+        "http://127.0.0.1:5000/api/ai/suggestions",
+        params={"postal_code": postal_code, "direction": house_direction},
+    )
     if res.status_code != 200:
         st.error("Failed to fetch weather data. Please try again later.")
         return None, None
@@ -102,9 +111,12 @@ def fetch_weather_recommendation(postal_code, house_direction):
     weather_station_data = data["data"]["weather_station_data"]
     average_weather_stats = {}
     for station in weather_station_data:
-        keys = ['airTemp', 'humidity', 'windSpeed', 'uv_index']
+        keys = ["airTemp", "humidity", "windSpeed", "uv_index"]
         for key in keys:
-                average_weather_stats[key] = average_weather_stats.get(key, 0) + station[key] * station['distance_weight']
+            average_weather_stats[key] = (
+                average_weather_stats.get(key, 0)
+                + station[key] * station["distance_weight"]
+            )
 
     average_weather_stats["uv_index"] = int(average_weather_stats["uv_index"])
     # Remove everything before "Summary:"
@@ -112,8 +124,8 @@ def fetch_weather_recommendation(postal_code, house_direction):
         suggestions = data["suggestion"].split("Summary:")[1].strip()
         suggestions = "\n**Summary:** " + suggestions
         suggestions = suggestions.replace("Suggestions:", "\n**Suggestions:** ")
-    print(suggestions)
     return average_weather_stats, markdown.markdown(suggestions)
+
 
 # Main function
 def main():
@@ -139,33 +151,67 @@ def main():
 
         # Display Overall Statistics Table
         st.subheader("Overall Statistics")
-        metric_options = ["Temperature (°C)", "Humidity (%)", "Wind Speed (m/s)", "Heat Stress"]
+        metric_options = [
+            "Temperature (°C)",
+            "Humidity (%)",
+            "Wind Speed (m/s)",
+            "Heat Stress",
+        ]
         metric_mapper = {
             "Temperature (°C)": "airTemp",
             "Humidity (%)": "humidity",
             "Wind Speed (m/s)": "windSpeed",
-            "Heat Stress": "heatStress"
+            "Heat Stress": "heatStress",
         }
         selected_metric = st.selectbox("Select Metric:", metric_options)
         print(weather_data)
 
-        room_data = [{"Room": d["room"], selected_metric: f"{d[metric_mapper[selected_metric]] : .1f}"} for d in weather_data]
+        room_data = [
+            {
+                "Room": d["room"],
+                selected_metric: f"{d[metric_mapper[selected_metric]] : .1f}",
+            }
+            for d in weather_data
+        ]
         st.table(pd.DataFrame(room_data))
 
         # Predictive Heat Stress Graph
         st.subheader("Predictive Heat Stress Time Series")
         stress_df = generate_time_series(avg_stats)
-        # st.line_chart(stress_df.set_index("Time"))
-        st.pyplot(stress_df.set_index("Time").plot(title="Predictive Heat Stress Time Series", xlabel="Time", ylabel="Heat Stress (WBGT)", figsize=(10, 5)).get_figure())
+        st.pyplot(
+            stress_df.set_index("Time")
+            .plot(
+                title="Predictive Heat Stress Time Series",
+                xlabel="Time",
+                ylabel="Heat Stress (WBGT)",
+                figsize=(10, 5),
+            )
+            .get_figure()
+        )
 
     else:
         st.warning("No weather data available.")
-        st.write("Enter your postal code and house direction to receive tailored recommendations based on current weather conditions.")
+        st.write(
+            "Enter your postal code and house direction to receive tailored recommendations based on current weather conditions."
+        )
 
     # User inputs
-    postal_code = st.text_input("PostalCodes", max_chars=6, placeholder="Enter your postal code")
-    house_direction = st.number_input("House Direction (in degrees)", min_value=0, max_value=360, value=0, step=1, help="Enter the direction your house faces in degrees (0-360).")
-    disabled = len(postal_code.strip()) != 6 or not postal_code.strip().isdigit() or not house_direction
+    postal_code = st.text_input(
+        "PostalCodes", max_chars=6, placeholder="Enter your postal code"
+    )
+    house_direction = st.number_input(
+        "House Direction (in degrees)",
+        min_value=0,
+        max_value=360,
+        value=0,
+        step=1,
+        help="Enter the direction your house faces in degrees (0-360).",
+    )
+    disabled = (
+        len(postal_code.strip()) != 6
+        or not postal_code.strip().isdigit()
+        or not house_direction
+    )
 
     # Submit button
     if st.button("Generate Recommendations", disabled=disabled):
@@ -174,7 +220,9 @@ def main():
         else:
             # Fetch weather data and recommendations
             with st.spinner("Fetching weather data and generating recommendations..."):
-                weather_data, recommendations = fetch_weather_recommendation(postal_code, house_direction)
+                weather_data, recommendations = fetch_weather_recommendation(
+                    postal_code, house_direction
+                )
 
             # Display weather summary
             st.subheader("Weather Summary")
@@ -187,9 +235,15 @@ def main():
             # Display recommendations inside the styled box
             st.subheader("Personalized Recommendations")
             if recommendations:
-                st.markdown(f'<div class="recommendation-box">{recommendations}</div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="recommendation-box">{recommendations}</div>',
+                    unsafe_allow_html=True,
+                )
             else:
-                st.info("No specific recommendations available for the current weather conditions.")
+                st.info(
+                    "No specific recommendations available for the current weather conditions."
+                )
+
 
 # Run the app
 if __name__ == "__main__":

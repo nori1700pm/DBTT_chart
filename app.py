@@ -57,6 +57,7 @@ def get_nearest_data():
         abort(400, description="Postal code is required")
     latitude, longitude = weather_service.postal_code_to_latlong(CODE)
     nearest = weather_service.find_nearest_stations(latitude, longitude, num_stations=3)
+    print(nearest[["stationId", "location", "airTemp", "humidity", "windSpeed", "heat_score", "distance_weight"]])
     return nearest.to_json(orient="records")
 
 
