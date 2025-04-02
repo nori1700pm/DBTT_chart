@@ -197,7 +197,7 @@ def main():
 
     # User inputs
     postal_code = st.text_input(
-        "PostalCodes", max_chars=6, placeholder="Enter your postal code"
+        "Postal Code", max_chars=6, placeholder="Enter your postal code"
     )
     house_direction = st.number_input(
         "House Direction (in degrees)",

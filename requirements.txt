@@ -1,0 +1,12 @@
+Flask
+pandas
+numpy
+matplotlib
+python-dotenv
+scipy
+geopy
+scikit-learn
+requests
+google-genai
+Markdown
+streamlit
